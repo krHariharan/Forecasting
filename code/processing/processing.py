@@ -37,3 +37,4 @@ if __debug__:
 
 inputData.to_csv("../../data/processed/"+inputFile)
 limits.to_csv("../../data/processed/limits_"+inputFile)
+inputData["Price"].to_csv("../../data/processed/simple_"+inputFile)
