@@ -23,6 +23,7 @@ inputData = inputData.set_index('Date').reindex(d_range)
 inputData["Price"] = (inputData["Price"].fillna(method='ffill') + inputData["Price"].fillna(method='bfill'))/2
 
 # Normalizing price, and then adding powers
+inputDataSimple = inputData[["Price"]]
 inputData = (inputData[["Price"]] - minPrice)/ priceRange
 inputData["P^0.5"] = inputData["Price"] ** 0.5
 inputData["P^2"] = inputData["Price"] ** 2
@@ -37,4 +38,4 @@ if __debug__:
 
 inputData.to_csv("../../data/processed/"+inputFile)
 limits.to_csv("../../data/processed/limits_"+inputFile)
-inputData["Price"].to_csv("../../data/processed/simple_"+inputFile)
+inputDataSimple.to_csv("../../data/processed/simple_"+inputFile)
