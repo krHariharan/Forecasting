@@ -8,7 +8,7 @@ else:
     inputFile = input()
 
 # reading input
-inputData = pd.read_csv("../../data/raw/"+inputFile, thousands=",")[["Date", "Price"]]
+inputData = pd.read_csv("../data/raw/"+inputFile, thousands=",")[["Date", "Price"]]
 inputData["Date"] = pd.to_datetime(inputData["Date"])
 
 # limits to normalize data
@@ -36,6 +36,6 @@ if __debug__:
     print(inputData)
     print(limits)
 
-inputData.to_csv("../../data/processed/"+inputFile)
-limits.to_csv("../../data/processed/limits_"+inputFile)
-inputDataSimple.to_csv("../../data/processed/simple_"+inputFile)
+inputData.to_csv("../data/processed/"+inputFile)
+limits.to_csv("../data/processed/limits_"+inputFile)
+inputDataSimple.to_csv("../data/processed/simple_"+inputFile)

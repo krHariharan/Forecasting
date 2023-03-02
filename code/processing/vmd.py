@@ -12,7 +12,7 @@ else:
     print("Enter file to process")
     inputFile = input()
 
-inputData = pd.read_csv("../../data/raw/"+inputFile, thousands=",")[["Date", "Price"]]
+inputData = pd.read_csv("../data/raw/"+inputFile, thousands=",")[["Date", "Price"]]
 
 #. some sample parameters for VMD  
 alpha = 2000       # moderate bandwidth constraint  

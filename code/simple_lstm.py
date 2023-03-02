@@ -27,7 +27,7 @@ if len(sys.argv) > 1:
 else:
     print("Enter file to process")
     inputFile = input()
-dataframe = read_csv("../../data/processed/"+inputFile, usecols=[1])
+dataframe = read_csv("../data/processed/"+inputFile, usecols=[1])
 dataset = dataframe.values
 dataset = dataset.astype('float32')
 # normalize the dataset
