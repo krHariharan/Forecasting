@@ -73,7 +73,7 @@ def parameter_gen(start_date: datetime, end_date: datetime, freq: int):
             if i != j:
                 parameters[str(freq)+"_sym_bd_"+str(i)+"_"+str(j)] = parameters["t"].map(sym_beta_dist(float(i), float(j), 0))
                 parameters[str(freq)+"_inv_bd_"+str(i)+"_"+str(j)] = parameters["t"].map(sym_beta_dist(float(i), float(j), 1))
-    print(parameters)
+    return parameters
 
-if __debug__:
-    parameter_gen(datetime(2020,1,1), datetime(2023,1,1), 364)
+# if __debug__:
+#     parameter_gen(datetime(2020,1,1), datetime(2023,1,1), 364)

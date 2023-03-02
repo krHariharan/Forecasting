@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas import read_csv
+import pandas as pd
 import math
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -10,15 +10,18 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import sys
 from vmdpy import VMD
+from parameter_gen import parameter_gen
 
 # convert an array of values into a dataset matrix
-def create_dataset(dataset, look_back=1):
-	dataX, dataY = [], []
-	for i in range(len(dataset)-look_back-1):
-		a = dataset[i:(i+look_back), 0]
-		dataX.append(a)
-		dataY.append(dataset[i + look_back, 0])
-	return np.array(dataX), np.array(dataY)
+def create_dataset(dataset, look_back=1, other_params = None):
+    dataX, dataY = [], []
+    for i in range(len(dataset)-look_back-1):
+        a = dataset[i:(i+look_back), 0]
+        if other_params is not None:
+            a = np.append(a, other_params.iloc[i+look_back, :])
+        dataX.append(a)
+        dataY.append(dataset[i + look_back, 0])
+    return np.array(dataX), np.array(dataY)
 
 # fix random seed for reproducibility
 tf.random.set_seed(7)
@@ -31,8 +34,18 @@ else:
     print("Enter file to process")
     inputFile = input()
 
-dataframe = read_csv("../../data/processed/"+inputFile, usecols=[1])
-# generated_params = 
+dataframe = pd.read_csv("../data/processed/"+inputFile, index_col=0)
+dataframe.index = pd.to_datetime(dataframe.index)
+
+params_10_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 3650).reset_index(drop=True)
+params_5_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 3650).reset_index(drop=True)
+params_2_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 3650).reset_index(drop=True)
+annual_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 365).reset_index(drop=True)
+quarterly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 121).reset_index(drop=True)
+monthly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 30).reset_index(drop=True)
+weekly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 7).reset_index(drop=True)
+generated_params = pd.concat([annual_params, quarterly_params, monthly_params, weekly_params], axis=1, join='inner')
+
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
