@@ -35,7 +35,7 @@ datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
 decomposed_dataset = seasonal_decompose(datasetFull, model="multiplicative", period=365, extrapolate_trend='freq')
-decomposed_datasets = [[decomposed_dataset.seasonal]]
+decomposed_datasets = []
 
 plt.plot(decomposed_dataset.resid)
 plt.savefig("resid.png")
@@ -85,12 +85,12 @@ _, testYtrend = create_dataset(trend_test, look_back)
 _, trainYresid = create_dataset(resid_train, look_back)
 _, testYresid = create_dataset(resid_test, look_back)
 
-trainPartials = [trainYseasonal, trainYtrend, trainYresid]
-testPartials = [testYseasonal, testYtrend, testYresid]
+trainPartials = [trainYtrend, trainYresid]
+testPartials = [testYtrend, testYresid]
 
 
-trainPredictFull = np.full(len(trainYfull), 1, 'float32')
-testPredictFull = np.full(len(testYfull), 1, 'float32')
+trainPredictFull = trainYseasonal
+testPredictFull = testYseasonal
 
 for i, datasets in enumerate(decomposed_datasets):
     trainPredictPartial = np.zeros(len(trainYfull))
