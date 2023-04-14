@@ -1,4 +1,3 @@
-# LSTM for international airline passengers problem with regression framing
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import read_csv
