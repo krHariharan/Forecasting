@@ -18,10 +18,10 @@ def create_dataset(dataset, look_back=1, other_params = None):
     for i in range(len(dataset)-look_back-1):
         a = dataset[i:(i+look_back), 0]
         if other_params is not None:
-            a = np.append(a, other_params.iloc[i+look_back, :])
+            a = np.append(a, other_params.iloc[i:(i+look_back), :])
         dataX.append(a)
         dataY.append(dataset[i + look_back, 0])
-    # print(np.array(dataY))
+    print(np.array(dataX[0]))
     return np.array(dataX), np.array(dataY)
 
 # fix random seed for reproducibility
@@ -50,7 +50,7 @@ print(dataframe.corr())
 
 param_df = dataframe.iloc[:, 1:]
 param_df = (param_df - param_df.min()) / (param_df.max() - param_df.min())
-print(param_df)
+# print(param_df)
 dataframe = dataframe["Price"]
 
 dataframe = dataframe.reset_index(drop=True)
@@ -70,16 +70,16 @@ look_back = 3
 trainX, trainY = create_dataset(train, look_back, param_train)
 testX, testY = create_dataset(test, look_back, param_test)
 
-print(trainX)
-print(testX)
+# print(trainX)
+# print(testX)
 
 # reshape input to be [samples, time steps, features]
 trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
 testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
-print(testX[0])
+# print(testX[0])
 # create and fit the LSTM network
 model = Sequential()
-model.add(LSTM(4, input_shape=(1, look_back+3)))
+model.add(LSTM(4, input_shape=(1, look_back*4)))
 model.add(Dense(1))
 model.compile(loss='mean_squared_error', optimizer='adam')
 model.fit(trainX, trainY, epochs=10, batch_size=1, verbose=2)
