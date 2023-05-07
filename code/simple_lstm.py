@@ -15,6 +15,7 @@ from parameter_gen import parameter_gen
 
 # convert an array of values into a dataset matrix
 def create_dataset(dataset, look_back=1, other_params = None):
+    print(dataset.shape)
     dataX, dataY = [], []
     for i in range(len(dataset)-look_back-1):
         a = dataset[i:(i+look_back), 0]
@@ -22,7 +23,7 @@ def create_dataset(dataset, look_back=1, other_params = None):
             a = np.append(a, other_params.iloc[i+look_back, :])
         dataX.append(a)
         dataY.append(dataset[i + look_back, 0])
-    print(np.array(dataY))
+    print(len(dataY))
     return np.array(dataX), np.array(dataY)
 
 # fix random seed for reproducibility
@@ -46,8 +47,9 @@ annual_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 365)
 quarterly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 121).reset_index(drop=True)
 monthly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 30).reset_index(drop=True)
 weekly_params = parameter_gen(dataframe.index.min(), dataframe.index.max(), 7).reset_index(drop=True)
-# generated_params = pd.concat([params_full_period, params_10_yrs, params_5_yrs, params_2_yrs, annual_params, quarterly_params, monthly_params, weekly_params], axis=1, join='inner')
-generated_params = params_full_period
+generated_params = pd.concat([params_full_period, params_10_yrs, params_5_yrs, params_2_yrs, annual_params, quarterly_params, monthly_params, weekly_params], axis=1, join='inner')
+# generated_params = params_full_period
+print(generated_params.shape)
 
 dataframe = dataframe.reset_index(drop=True)
 dataset = dataframe.values
@@ -56,12 +58,12 @@ dataset = dataset.astype('float32')
 scaler = MinMaxScaler(feature_range=(0, 1))
 dataset = scaler.fit_transform(dataset)
 # split into train and test sets
-train_size = int(len(dataset) * 0.8)
+train_size = int(len(dataset) * 0.95)
 test_size = len(dataset) - train_size
 train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
 generated_train, generated_test = generated_params.iloc[0:train_size, :], generated_params.iloc[train_size:len(dataset), :]
 # reshape into X=t and Y=t+1
-look_back = 3
+look_back = 10
 additional_param_count = 0
 
 all_params = pd.concat([dataframe, generated_params], axis=1, join='inner')

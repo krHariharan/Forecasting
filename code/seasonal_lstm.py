@@ -36,9 +36,9 @@ datasetFull = datasetFull.astype('float32')
 decomposed_dataset = seasonal_decompose(datasetFull, model="multiplicative", period=365, extrapolate_trend='freq')
 datasets = [decomposed_dataset.seasonal, decomposed_dataset.trend, decomposed_dataset.resid]
 
-train_size = int(len(datasetFull) * 0.8)
+train_size = int(len(datasetFull) * 0.95)
 test_size = len(datasetFull) - train_size
-look_back = 3
+look_back = 10
 
 train, test = datasetFull[0:train_size,:], datasetFull[train_size:len(datasetFull),:]
 # reshape into X=t and Y=t+1
