@@ -51,7 +51,11 @@ dataframe.index = pd.to_datetime(dataframe.index)
 
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
-datasetFull = datasetFull[2:, :] - datasetFull[1:-1, :]
+
+if datasetFull.shape[0] % 2 == 0:
+    datasetFull = datasetFull[2:, :] - datasetFull[1:-1, :]
+else:
+    datasetFull = datasetFull[1:, :] - datasetFull[:-1, :]
 print(datasetFull)
 
 #. some sample parameters for VMD  
@@ -66,12 +70,12 @@ tol = 1e-7
 #. Run VMD 
 u, u_hat, omega = VMD(datasetFull, alpha, tau, K, DC, init, tol)  
 
-look_back = 3
+look_back = 10
 additional_param_count = 0
 train_size = int(len(datasetFull) * 0.95)
 test_size = len(datasetFull) - train_size
 train, test = datasetFull[0:train_size,:], datasetFull[train_size:len(datasetFull),:]
-generated_train, generated_test = generated_params.iloc[0:train_size, :], generated_params.iloc[train_size:len(datasetFull), :]
+# generated_train, generated_test = generated_params.iloc[0:train_size, :], generated_params.iloc[train_size:len(datasetFull), :]
 # reshape into X=t and Y=t+1
 _, trainYfull = create_dataset(train, look_back)
 _, testYfull = create_dataset(test, look_back)
@@ -79,21 +83,21 @@ _, testYfull = create_dataset(test, look_back)
 trainPredictFull = np.zeros(len(trainYfull))
 testPredictFull = np.zeros(len(testYfull))
 
-all_params = generated_params
-all_params['u'] = pd.Series(datasetFull[:, 0])
-params_corr = all_params.corr()["u"].abs()
-selected_params = params_corr.nlargest(1+additional_param_count).index
+# all_params = generated_params
+# all_params['u'] = pd.Series(datasetFull[:, 0])
+# params_corr = all_params.corr()["u"].abs()
+# selected_params = params_corr.nlargest(1+additional_param_count).index
 # print(params_corr.nlargest(1+additional_param_count))
 
 for i, dataset in enumerate(u):
     print(i)
     plt.plot(dataset)
-    plt.savefig("u_"+str(i)+".png")
+    plt.savefig("delta_u_"+str(i)+".png")
     plt.clf()
-    all_params = generated_params
-    all_params['u'] = pd.Series(dataset)
-    params_corr = all_params.corr()["u"].abs()
-    selected_params = params_corr.nlargest(1+additional_param_count).index
+    # all_params = generated_params
+    # all_params['u'] = pd.Series(dataset)
+    # params_corr = all_params.corr()["u"].abs()
+    # selected_params = params_corr.nlargest(1+additional_param_count).index
     # print(params_corr.nlargest(1+additional_param_count))
 
     dataset = np.reshape(dataset, (-1,1))
@@ -103,8 +107,8 @@ for i, dataset in enumerate(u):
     # split into train and test sets
     train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
     # reshape into X=t and Y=t+1
-    trainX, trainY = create_dataset(train, look_back, generated_train[selected_params[1:]])
-    testX, testY = create_dataset(test, look_back, generated_test[selected_params[1:]])
+    trainX, trainY = create_dataset(train, look_back)
+    testX, testY = create_dataset(test, look_back)
     # reshape input to be [samples, time steps, features]
     trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
     # for i in range( trainX.shape[0]):
@@ -151,7 +155,7 @@ testPredictPlot = np.empty_like(datasetFull)
 testPredictPlot[:, :] = np.nan
 testPredictPlot[len(trainPredictFull)+(look_back*2)+1:len(dataset)-1, :] = testPredictFull.reshape(-1,1)
 # plot baseline and predictions
-plt.plot(scaler.inverse_transform(dataset))
+plt.plot(datasetFull)
 plt.plot(trainPredictPlot)
 plt.plot(testPredictPlot)
-plt.savefig("vmd_lstm.png")
+plt.savefig("vmd_lstm_delta.png")

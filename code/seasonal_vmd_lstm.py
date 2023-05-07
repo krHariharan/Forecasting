@@ -33,6 +33,9 @@ dataframe = read_csv("../data/processed/"+inputFile, usecols=[1])
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
+if datasetFull.shape[0] % 2 == 1:
+     datasetFull = datasetFull[1:, :]
+
 decomposed_dataset = seasonal_decompose(datasetFull, model="multiplicative", period=365, extrapolate_trend='freq')
 decomposed_datasets = []
 
@@ -65,7 +68,7 @@ decomposed_datasets.append(u)
 
 train_size = int(len(datasetFull) * 0.95)
 test_size = len(datasetFull) - train_size
-look_back = 3
+look_back = 10
 
 train, test = datasetFull[0:train_size,:], datasetFull[train_size:len(datasetFull),:]
 seasonal_train, seasonal_test = decomposed_dataset.seasonal[0:train_size].reshape(-1,1), decomposed_dataset.seasonal[train_size:len(datasetFull)].reshape(-1,1)
@@ -96,6 +99,9 @@ for i, datasets in enumerate(decomposed_datasets):
     testPredictPartial = np.zeros(len(testYfull))
     for j, dataset in enumerate(datasets):
         print(str(i)+" - "+str(j))
+        plt.plot(dataset)
+        plt.savefig("seasonal_u_"+str(i)+"_"+str(j)+".png")
+        plt.clf()
         # print(dataset)
         # normalize the dataset
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -113,7 +119,7 @@ for i, datasets in enumerate(decomposed_datasets):
         model.add(LSTM(4, input_shape=(1, look_back)))
         model.add(Dense(1))
         model.compile(loss='mean_squared_error', optimizer='adam')
-        model.fit(trainX, trainY, epochs=10, batch_size=1, verbose=0)
+        model.fit(trainX, trainY, epochs=10, batch_size=1, verbose=2)
         # make predictions
         trainPredict = model.predict(trainX)
         testPredict = model.predict(testX)
