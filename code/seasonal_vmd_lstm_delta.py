@@ -1,3 +1,4 @@
+# Model decomposing data using seasonal decomposition followed by differencing and VMD, and then performing LSTM
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import read_csv
@@ -33,9 +34,11 @@ dataframe = read_csv("../data/processed/"+inputFile, usecols=[1])
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
+# making sure dataset is even sized, so that the output of VMD is also the same size
 if datasetFull.shape[0] % 2 == 1:
      datasetFull = datasetFull[1:, :]
 
+# seasonal decomposition
 decomposed_dataset = seasonal_decompose(datasetFull, model="multiplicative", period=365, extrapolate_trend='freq')
 decomposed_datasets = []
 
@@ -49,12 +52,15 @@ plt.plot(decomposed_dataset.seasonal)
 plt.savefig("seasonal.png")
 plt.clf()
 
+#differencing step
 trend_delta = decomposed_dataset.trend[2:] - decomposed_dataset.trend[1:-1]
 resid_delta = decomposed_dataset.resid[2:] - decomposed_dataset.resid[1:-1]
 
+# previous step values
 trend_prev = decomposed_dataset.trend[1:-1]
 resid_prev = decomposed_dataset.resid[1:-1]
 
+# original step values
 trend = decomposed_dataset.trend[2:]
 resid = decomposed_dataset.resid[2:]
 seasonal = decomposed_dataset.seasonal[2:]
@@ -64,20 +70,21 @@ dataset1 = datasetFull[2:]
 #. some sample parameters for VMD  
 alpha = 2000       # moderate bandwidth constraint  
 tau = 0.            # noise-tolerance (no strict fidelity enforcement)  
-K = 20              # 3 modes  
+K = 20              # 20 modes  
 DC = 0             # no DC part imposed  
 init = 1           # initialize omegas uniformly  
 tol = 1e-7  
 
 
-#. Run VMD 
+#. Run VMD - differenced trend component
 u, u_hat, omega = VMD(trend_delta, alpha, tau, K, DC, init, tol)
 decomposed_datasets.append(u)
 
-#. Run VMD 
+#. Run VMD - differenced residual component
 u, u_hat, omega = VMD(resid_delta, alpha, tau, K, DC, init, tol)
 decomposed_datasets.append(u)
 
+# split into train and test sets
 train_size = int(len(dataset1) * 0.95)
 test_size = len(dataset1) - train_size
 look_back = 10
@@ -88,7 +95,7 @@ trend_train, trend_test = trend[0:train_size].reshape(-1,1), trend[train_size:le
 resid_train, resid_test = resid[0:train_size].reshape(-1,1), resid[train_size:len(dataset1)].reshape(-1,1)
 trend_prev_train, trend_prev_test = trend_prev[0:train_size].reshape(-1,1), trend_prev[train_size:len(dataset1)].reshape(-1,1)
 resid_prev_train, resid_prev_test = resid_prev[0:train_size].reshape(-1,1), resid_prev[train_size:len(dataset1)].reshape(-1,1)
-# reshape into X=t and Y=t+1
+
 _, trainYfull = create_dataset(train, look_back)
 _, testYfull = create_dataset(test, look_back)
 
@@ -147,7 +154,7 @@ for i, datasets in enumerate(decomposed_datasets):
         trainY = scaler.inverse_transform([trainY])
         testPredict = scaler.inverse_transform(testPredict)
         testY = scaler.inverse_transform([testY])
-        # calculate root mean squared error
+        # calculate root mean squared error - VMD components
         trainScore = np.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
         print('Train Score: %f RMSE' % (trainScore))
         testScore = np.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
@@ -155,6 +162,7 @@ for i, datasets in enumerate(decomposed_datasets):
         trainPredictPartial += trainPredict[:, 0]
         testPredictPartial += testPredict[:, 0]
     print(i)
+    # calculate root mean squared error - trend/residual components
     trainScore = np.sqrt(mean_squared_error(trainPartials[i], trainPredictPartial))
     print('Train Score: %f RMSE' % (trainScore))
     testScore = np.sqrt(mean_squared_error(testPartials[i], testPredictPartial))
@@ -163,6 +171,7 @@ for i, datasets in enumerate(decomposed_datasets):
     trainPredictFull *= trainPredictPartial
     testPredictFull *= testPredictPartial
 
+# calculate root mean squared error - full data
 trainScore = np.sqrt(mean_squared_error(trainYfull, trainPredictFull))
 print('Train Score: %f RMSE' % (trainScore))
 testScore = np.sqrt(mean_squared_error(testYfull, testPredictFull))

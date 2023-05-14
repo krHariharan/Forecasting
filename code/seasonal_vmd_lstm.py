@@ -1,3 +1,4 @@
+# Model decomposing data using seasonal decomposition followed by VMD, and then performing LSTM
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import read_csv
@@ -33,9 +34,11 @@ dataframe = read_csv("../data/processed/"+inputFile, usecols=[1])
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
+# making sure dataset is even sized, so that the output of VMD is also the same size
 if datasetFull.shape[0] % 2 == 1:
      datasetFull = datasetFull[1:, :]
 
+# seasonal decomposition
 decomposed_dataset = seasonal_decompose(datasetFull, model="multiplicative", period=365, extrapolate_trend='freq')
 decomposed_datasets = []
 
@@ -52,20 +55,21 @@ plt.clf()
 #. some sample parameters for VMD  
 alpha = 2000       # moderate bandwidth constraint  
 tau = 0.            # noise-tolerance (no strict fidelity enforcement)  
-K = 20              # 3 modes  
+K = 20              # 20 modes  
 DC = 0             # no DC part imposed  
 init = 1           # initialize omegas uniformly  
 tol = 1e-7  
 
 
-#. Run VMD 
+#. Run VMD - trend data
 u, u_hat, omega = VMD(decomposed_dataset.trend, alpha, tau, K, DC, init, tol)
 decomposed_datasets.append(u)
 
-#. Run VMD 
+#. Run VMD - residual data
 u, u_hat, omega = VMD(decomposed_dataset.resid, alpha, tau, K, DC, init, tol)
 decomposed_datasets.append(u)
 
+# split into train and test sets
 train_size = int(len(datasetFull) * 0.95)
 test_size = len(datasetFull) - train_size
 look_back = 10
@@ -74,7 +78,6 @@ train, test = datasetFull[0:train_size,:], datasetFull[train_size:len(datasetFul
 seasonal_train, seasonal_test = decomposed_dataset.seasonal[0:train_size].reshape(-1,1), decomposed_dataset.seasonal[train_size:len(datasetFull)].reshape(-1,1)
 trend_train, trend_test = decomposed_dataset.trend[0:train_size].reshape(-1,1), decomposed_dataset.trend[train_size:len(datasetFull)].reshape(-1,1)
 resid_train, resid_test = decomposed_dataset.resid[0:train_size].reshape(-1,1), decomposed_dataset.resid[train_size:len(datasetFull)].reshape(-1,1)
-# reshape into X=t and Y=t+1
 _, trainYfull = create_dataset(train, look_back)
 _, testYfull = create_dataset(test, look_back)
 
@@ -108,7 +111,6 @@ for i, datasets in enumerate(decomposed_datasets):
         dataset = scaler.fit_transform(dataset.reshape(-1, 1))
         # split into train and test sets
         train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
-        # reshape into X=t and Y=t+1
         trainX, trainY = create_dataset(train, look_back)
         testX, testY = create_dataset(test, look_back)
         # reshape input to be [samples, time steps, features]
@@ -128,7 +130,7 @@ for i, datasets in enumerate(decomposed_datasets):
         trainY = scaler.inverse_transform([trainY])
         testPredict = scaler.inverse_transform(testPredict)
         testY = scaler.inverse_transform([testY])
-        # calculate root mean squared error
+        # calculate root mean squared error - individual VMD components
         trainScore = np.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
         print('Train Score: %f RMSE' % (trainScore))
         testScore = np.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
@@ -136,6 +138,7 @@ for i, datasets in enumerate(decomposed_datasets):
         trainPredictPartial += trainPredict[:, 0]
         testPredictPartial += testPredict[:, 0]
     print(i)
+    # calculate root mean squared error - trend/residual component
     trainScore = np.sqrt(mean_squared_error(trainPartials[i], trainPredictPartial))
     print('Train Score: %f RMSE' % (trainScore))
     testScore = np.sqrt(mean_squared_error(testPartials[i], testPredictPartial))
@@ -144,6 +147,7 @@ for i, datasets in enumerate(decomposed_datasets):
     trainPredictFull *= trainPredictPartial
     testPredictFull *= testPredictPartial
 
+# calculate root mean squared error - full data
 trainScore = np.sqrt(mean_squared_error(trainYfull, trainPredictFull))
 print('Train Score: %f RMSE' % (trainScore))
 testScore = np.sqrt(mean_squared_error(testYfull, testPredictFull))

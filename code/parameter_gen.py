@@ -1,3 +1,4 @@
+# parameter genreration code
 import pandas as pd
 from datetime import *
 import math

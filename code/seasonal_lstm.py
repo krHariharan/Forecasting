@@ -1,4 +1,4 @@
-# LSTM for international airline passengers problem with regression framing
+# Model decomposing data using seasonal decomposition, and then performing LSTM
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import read_csv

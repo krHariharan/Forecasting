@@ -1,3 +1,4 @@
+# formatting and extrapolating data
 import pandas as pd 
 import sys
 inputFile = ""

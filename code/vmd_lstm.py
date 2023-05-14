@@ -1,3 +1,4 @@
+# Model decomposing data using VMD, and then performing LSTM
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -37,6 +38,7 @@ else:
 dataframe = pd.read_csv("../data/processed/"+inputFile, index_col=0)
 dataframe.index = pd.to_datetime(dataframe.index)
 
+# parameter generation step
 params_full_period = parameter_gen(dataframe.index.min(), dataframe.index.max(), (dataframe.index.max() - dataframe.index.min()).days).reset_index(drop=True)
 params_10_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 3650).reset_index(drop=True)
 params_5_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 1825).reset_index(drop=True)
@@ -51,6 +53,7 @@ generated_params = pd.concat([params_full_period, params_10_yrs, params_5_yrs, p
 datasetFull = dataframe.values
 datasetFull = datasetFull.astype('float32')
 
+# making sure dataset is even sized, so that the output of VMD is also the same size
 if datasetFull.shape[0] % 2 == 1:
     datasetFull = datasetFull[1:, :]
 # print(datasetFull)
@@ -58,7 +61,7 @@ if datasetFull.shape[0] % 2 == 1:
 #. some sample parameters for VMD  
 alpha = 2000       # moderate bandwidth constraint  
 tau = 0.            # noise-tolerance (no strict fidelity enforcement)  
-K = 20              # 3 modes  
+K = 20              # 20 modes  
 DC = 0             # no DC part imposed  
 init = 1           # initialize omegas uniformly  
 tol = 1e-7  
@@ -67,19 +70,21 @@ tol = 1e-7
 #. Run VMD 
 u, u_hat, omega = VMD(datasetFull, alpha, tau, K, DC, init, tol)  
 
+# set size of input to LSTM model
 look_back = 10
 additional_param_count = 0
+# split into train and test sets
 train_size = int(len(datasetFull) * 0.95)
 test_size = len(datasetFull) - train_size
 train, test = datasetFull[0:train_size,:], datasetFull[train_size:len(datasetFull),:]
 generated_train, generated_test = generated_params.iloc[0:train_size, :], generated_params.iloc[train_size:len(datasetFull), :]
-# reshape into X=t and Y=t+1
 _, trainYfull = create_dataset(train, look_back)
 _, testYfull = create_dataset(test, look_back)
 
 trainPredictFull = np.zeros(len(trainYfull))
 testPredictFull = np.zeros(len(testYfull))
 
+# find generated parameters with highest correlation
 all_params = generated_params
 all_params['u'] = pd.Series(datasetFull[:, 0])
 params_corr = all_params.corr()["u"].abs()
@@ -92,6 +97,7 @@ for i, dataset in enumerate(u):
     plt.savefig("u_"+str(i)+".png")
     plt.clf()
 
+    # find generated parameters with highest correlation with component (to be given as input to LSTM)
     all_params = generated_params
     all_params['u'] = pd.Series(dataset)
     params_corr = all_params.corr()["u"].abs()
@@ -104,7 +110,6 @@ for i, dataset in enumerate(u):
     dataset = scaler.fit_transform(dataset)
     # split into train and test sets
     train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
-    # reshape into X=t and Y=t+1
     trainX, trainY = create_dataset(train, look_back, generated_train[selected_params[1:]])
     testX, testY = create_dataset(test, look_back, generated_test[selected_params[1:]])
     # reshape input to be [samples, time steps, features]
@@ -136,9 +141,10 @@ for i, dataset in enumerate(u):
     trainPredictFull += trainPredict[:, 0]
     testPredictFull += testPredict[:, 0]
 
-print(testPredictFull)
-print(trainPredictFull)
+# print(testPredictFull)
+# print(trainPredictFull)
 
+# calculate root mean squared error
 trainScore = np.sqrt(mean_squared_error(trainYfull, trainPredictFull))
 print('Train Score: %f RMSE' % (trainScore))
 testScore = np.sqrt(mean_squared_error(testYfull, testPredictFull))

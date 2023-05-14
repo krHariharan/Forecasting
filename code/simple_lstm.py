@@ -1,4 +1,4 @@
-# LSTM for international airline passengers problem with regression framing
+# Simple LSTM model
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -39,6 +39,7 @@ else:
 dataframe = read_csv("../data/processed/"+inputFile, index_col=0)
 dataframe.index = pd.to_datetime(dataframe.index)
 
+#parameter generation step
 params_full_period = parameter_gen(dataframe.index.min(), dataframe.index.max(), (dataframe.index.max() - dataframe.index.min()).days).reset_index(drop=True)
 params_10_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 3650).reset_index(drop=True)
 params_5_yrs = parameter_gen(dataframe.index.min(), dataframe.index.max(), 1825).reset_index(drop=True)
@@ -62,10 +63,11 @@ train_size = int(len(dataset) * 0.95)
 test_size = len(dataset) - train_size
 train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
 generated_train, generated_test = generated_params.iloc[0:train_size, :], generated_params.iloc[train_size:len(dataset), :]
-# reshape into X=t and Y=t+1
+# set size of input to LSTM model
 look_back = 10
 additional_param_count = 0
 
+# find generated parameters with highest correlation (to be given as input to LSTM)
 all_params = pd.concat([dataframe, generated_params], axis=1, join='inner')
 params_corr = all_params.corr()["Price"].abs()
 selected_params = params_corr.nlargest(1+additional_param_count).index
